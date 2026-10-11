@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+      th:fragment="layout(title, content)">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${title} + ' | Quản Lý Nhà Trọ'">Quản Lý Nhà Trọ</title>
+    <link rel="stylesheet" th:href="@{/webjars/bootstrap/css/bootstrap.min.css}">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+</head>
+<body>
+
+<!-- NAVBAR TOP -->
+<nav class="navbar navbar-light bg-white fixed-top px-3 border-bottom shadow-sm">
+    <a class="navbar-brand text-dark fw-bold" href="#">
+        <i class="bi bi-house-door-fill me-2 text-primary"></i>Quản Lý Nhà Trọ
+    </a>
+    <div class="d-flex align-items-center">
+        <!-- Thông báo bell icon -->
+        <a href="#" class="text-secondary me-3 position-relative text-decoration-none"
+           data-bs-toggle="offcanvas" data-bs-target="#notificationPanel">
+            <i class="bi bi-bell fs-5"></i>
+            <span th:if="${soThongBaoChuaDoc != null && soThongBaoChuaDoc > 0}"
+                  class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger"
+                  th:text="${soThongBaoChuaDoc}">0</span>
+        </a>
+        <span class="text-dark fw-medium me-3">
+            <i class="bi bi-person-circle me-1 text-secondary"></i>
+            <span sec:authentication="name">User</span>
+        </span>
+        <form th:action="@{/logout}" method="post" class="d-inline">
+            <button type="submit" class="btn btn-outline-secondary btn-sm rounded-3">
+                <i class="bi bi-box-arrow-right me-1"></i>Đăng xuất
+            </button>
+        </form>
+    </div>
+</nav>
+
+<div class="d-flex" style="margin-top: 56px;">
+
+    <!-- SIDEBAR - CHỦ TRỌ -->
+    <nav sec:authorize="hasRole('CHU_TRO')" class="sidebar bg-white border-end p-3" id="sidebar">
+        <ul class="nav flex-column gap-1">
+            <li class="nav-item">
+                <a class="nav-link px-3 py-2 fw-medium text-secondary" th:href="@{/landlord/dashboard}">
+                    <i class="bi bi-speedometer2 me-2"></i>Dashboard
+                </a>
+            </li>
+            <li class="nav-header text-uppercase text-muted fw-bold small mt-3 mb-1 px-3" style="font-size: 0.7rem; letter-spacing: 0.5px;">Cơ sở vật chất</li>
+            <li class="nav-item">
+                <a class="nav-link px-3 py-2 fw-medium text-secondary" th:href="@{/landlord/khu-tro}">
+                    <i class="bi bi-building me-2"></i>Khu trọ
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link px-3 py-2 fw-medium text-secondary" th:href="@{/landlord/phong-tro}">
+                    <i class="bi bi-door-open me-2"></i>Phòng trọ
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link px-3 py-2 fw-medium text-secondary" th:href="@{/landlord/dich-vu}">
+                    <i class="bi bi-gear me-2"></i>Dịch vụ & Đơn giá
+                </a>
+            </li>
+            <li class="nav-header text-uppercase text-muted fw-bold small mt-3 mb-1 px-3" style="font-size: 0.7rem; letter-spacing: 0.5px;">Hợp đồng</li>
+            <li class="nav-item">
+                <a class="nav-link px-3 py-2 fw-medium text-secondary" th:href="@{/landlord/khach-thue}">
+                    <i class="bi bi-people me-2"></i>Khách thuê
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link px-3 py-2 fw-medium text-secondary" th:href="@{/landlord/hop-dong}">
+                    <i class="bi bi-file-earmark-text me-2"></i>Hợp đồng
+                </a>
+            </li>
+            <li class="nav-header text-uppercase text-muted fw-bold small mt-3 mb-1 px-3" style="font-size: 0.7rem; letter-spacing: 0.5px;">Tài chính</li>
+            <li class="nav-item">
+                <a class="nav-link px-3 py-2 fw-medium text-secondary" th:href="@{/landlord/hoa-don}">
+                    <i class="bi bi-receipt me-2"></i>Hóa đơn
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link px-3 py-2 fw-medium text-secondary" th:href="@{/landlord/thong-ke}">
+                    <i class="bi bi-bar-chart me-2"></i>Thống kê
+                </a>
+            </li>
+            <li class="nav-header text-uppercase text-muted fw-bold small mt-3 mb-1 px-3" style="font-size: 0.7rem; letter-spacing: 0.5px;">Vận hành</li>
+            <li class="nav-item">
+                <a class="nav-link px-3 py-2 fw-medium text-secondary" th:href="@{/landlord/su-co}">
+                    <i class="bi bi-wrench me-2"></i>Sự cố
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link px-3 py-2 fw-medium text-secondary" th:href="@{/landlord/yeu-cau-gia-han}">
+                    <i class="bi bi-arrow-repeat me-2"></i>Yêu cầu gia hạn
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link px-3 py-2 fw-medium text-secondary" th:href="@{/landlord/yeu-cau-cham-dut}">
+                    <i class="bi bi-x-circle me-2"></i>Yêu cầu chấm dứt
+                </a>
+            </li>
+            <li class="nav-header text-uppercase text-muted fw-bold small mt-3 mb-1 px-3" style="font-size: 0.7rem; letter-spacing: 0.5px;">Tài khoản</li>
+            <li class="nav-item">
+                <a class="nav-link px-3 py-2 fw-medium text-secondary" th:href="@{/landlord/tai-khoan}">
+                    <i class="bi bi-person-gear me-2"></i>Tài khoản
+                </a>
+            </li>
+        </ul>
+    </nav>
+
+    <!-- SIDEBAR - KHÁCH THUÊ -->
+    <nav sec:authorize="hasRole('KHACH_THUE')" class="sidebar bg-white border-end p-3" id="sidebar">
+        <ul class="nav flex-column gap-1">
+            <li class="nav-item">
+                <a class="nav-link px-3 py-2 fw-medium text-secondary" th:href="@{/tenant/dashboard}">
+                    <i class="bi bi-speedometer2 me-2"></i>Dashboard
+                </a>
+            </li>
+            <li class="nav-header text-uppercase text-muted fw-bold small mt-3 mb-1 px-3" style="font-size: 0.7rem; letter-spacing: 0.5px;">Hợp đồng</li>
+            <li class="nav-item">
+                <a class="nav-link px-3 py-2 fw-medium text-secondary" th:href="@{/tenant/hop-dong}">
+                    <i class="bi bi-file-earmark-text me-2"></i>Hợp đồng của tôi
+                </a>
+            </li>
+            <li class="nav-header text-uppercase text-muted fw-bold small mt-3 mb-1 px-3" style="font-size: 0.7rem; letter-spacing: 0.5px;">Tài chính</li>
+            <li class="nav-item">
+                <a class="nav-link px-3 py-2 fw-medium text-secondary" th:href="@{/tenant/hoa-don}">
+                    <i class="bi bi-wallet2 me-2"></i>Thanh toán & Hóa đơn
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link px-3 py-2 fw-medium text-secondary" th:href="@{/tenant/thong-ke}">
+                    <i class="bi bi-bar-chart me-2"></i>Thống kê
+                </a>
+            </li>
+            <li class="nav-header text-uppercase text-muted fw-bold small mt-3 mb-1 px-3" style="font-size: 0.7rem; letter-spacing: 0.5px;">Vận hành</li>
+            <li class="nav-item">
+                <a class="nav-link px-3 py-2 fw-medium text-secondary" th:href="@{/tenant/su-co}">
+                    <i class="bi bi-wrench me-2"></i>Báo cáo sự cố
+                </a>
+            </li>
+            <li class="nav-header text-uppercase text-muted fw-bold small mt-3 mb-1 px-3" style="font-size: 0.7rem; letter-spacing: 0.5px;">Tài khoản</li>
+            <li class="nav-item">
+                <a class="nav-link px-3 py-2 fw-medium text-secondary" th:href="@{/tenant/tai-khoan}">
+                    <i class="bi bi-person-gear me-2"></i>Tài khoản
+                </a>
+            </li>
+        </ul>
+    </nav>
+
+    <!-- MAIN CONTENT -->
+    <main class="main-content flex-grow-1 p-4">
+        <div th:replace="${content}"></div>
+    </main>
+
+</div>
+
+<!-- Notification Offcanvas Panel -->
+<div class="offcanvas offcanvas-end" tabindex="-1" id="notificationPanel">
+    <div class="offcanvas-header">
+        <h5 class="offcanvas-title"><i class="bi bi-bell me-2"></i>Thông báo</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="offcanvas"></button>
+    </div>
+    <div class="offcanvas-body">
+        <div th:if="${danhSachThongBao != null && !danhSachThongBao.isEmpty()}">
+            <form th:action="@{/thong-bao/mark-all-read}" method="post" class="mb-3">
+                <button type="submit" class="btn btn-sm btn-outline-primary w-100">
+                    <i class="bi bi-check-all me-1"></i>Đánh dấu tất cả đã đọc
+                </button>
+            </form>
+            <div th:each="tb : ${danhSachThongBao}" class="card mb-2 border-start border-primary border-3">
+                <div class="card-body py-2 px-3">
+                    <h6 class="card-title mb-1 small fw-bold" th:text="${tb.tieuDe}"></h6>
+                    <p class="card-text small text-muted mb-1" th:text="${tb.noiDung}"></p>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <small class="text-muted" th:text="${#temporals.format(tb.ngayTao, 'dd/MM HH:mm')}"></small>
+                        <a th:if="${tb.link != null}" th:href="${tb.link}" class="btn btn-sm btn-outline-primary py-0">
+                            Xem
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div th:if="${danhSachThongBao == null || danhSachThongBao.isEmpty()}" class="text-center py-5">
+            <i class="bi bi-bell-slash text-muted" style="font-size: 2rem;"></i>
+            <p class="text-muted mt-2">Không có thông báo mới</p>
+        </div>
+    </div>
+</div>
+
+<script th:src="@{/webjars/bootstrap/js/bootstrap.bundle.min.js}"></script>
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/vn.js"></script>
+<script>
+    // Auto-init flatpickr cho tất cả input[type="date"] → hiển thị dd/MM/yyyy
+    document.querySelectorAll('input[type="date"]').forEach(function(el) {
+        var minVal = el.getAttribute('min');
+        var currentVal = el.value;
+        el.type = 'text';
+        flatpickr(el, {
+            dateFormat: 'Y-m-d',    // giá trị gửi server (yyyy-MM-dd)
+            altInput: true,          // tạo input hiển thị riêng
+            altFormat: 'd/m/Y',     // user thấy dd/MM/yyyy
+            locale: 'vn',
+            minDate: minVal || null,
+            defaultDate: currentVal || null,
+            allowInput: true
+        });
+    });
+</script>
+<script>
+    // Highlighting active sidebar menu based on current URL path
+    document.addEventListener("DOMContentLoaded", function() {
+        var currentPath = window.location.pathname;
+        var navLinks = document.querySelectorAll(".sidebar .nav-link"); 
+        navLinks.forEach(function(link) {
+            var href = link.getAttribute("href");
+            if (href && href !== '#' && currentPath.startsWith(href)) {
+                link.classList.remove("text-secondary");
+                link.classList.add("bg-dark", "text-white", "rounded-3", "shadow-sm");
+            }
+        });
+    });
+</script>
+<script th:src="@{/js/app.js}"></script>
+</body>
+</html>

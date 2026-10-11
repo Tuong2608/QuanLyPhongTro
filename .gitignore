@@ -1,0 +1,12 @@
+target/
+.idea/
+.vscode/
+*.iml
+.project
+.classpath
+.settings/
+*.log
+.env
+.env.*
+application-local.properties
+uploads/

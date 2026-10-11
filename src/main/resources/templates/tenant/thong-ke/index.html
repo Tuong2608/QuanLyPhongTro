@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head><title>Thống kê cá nhân</title></head>
+<body>
+<div th:replace="~{layout/main :: layout(title='Thống kê cá nhân', content=~{::mainContent})}">
+    <div th:fragment="mainContent">
+
+        <!-- Alert khi khong co hop dong -->
+        <div th:if="${khongCoHopDong}" class="alert alert-info">
+            <i class="bi bi-info-circle me-1"></i>
+            Bạn chưa có hợp đồng thuê phòng nào. Vui lòng liên hệ chủ trọ để được hỗ trợ.
+        </div>
+
+        <!-- Noi dung thong ke -->
+        <div th:if="${!khongCoHopDong}">
+
+            <!-- Page Header -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h2><i class="bi bi-bar-chart-line me-2"></i>Thống kê cá nhân</h2>
+                    <p class="text-muted mb-0">Phòng <span th:text="${soPhong}">P101</span></p>
+                </div>
+            </div>
+
+            <!-- ========== PHAN 1: SUMMARY CARDS ========== -->
+            <div class="row g-3 mb-4" id="summaryCards">
+                <div class="col-md-3">
+                    <div class="card stat-card">
+                        <div class="card-body d-flex align-items-center">
+                            <div class="stat-icon bg-success bg-opacity-10 text-success me-3">
+                                <i class="bi bi-check-circle"></i>
+                            </div>
+                            <div>
+                                <div class="stat-value text-success" id="tongDaThanhToan">--</div>
+                                <div class="stat-label">Tổng đã thanh toán</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card stat-card">
+                        <div class="card-body d-flex align-items-center">
+                            <div class="stat-icon bg-danger bg-opacity-10 text-danger me-3">
+                                <i class="bi bi-exclamation-circle"></i>
+                            </div>
+                            <div>
+                                <div class="stat-value text-danger" id="tongConNo">--</div>
+                                <div class="stat-label">Còn nợ</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card stat-card">
+                        <div class="card-body d-flex align-items-center">
+                            <div class="stat-icon bg-warning bg-opacity-10 text-warning me-3">
+                                <i class="bi bi-lightning"></i>
+                            </div>
+                            <div>
+                                <div class="stat-value" id="tongDien">--</div>
+                                <div class="stat-label">Tổng điện tiêu thụ (kWh)</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card stat-card">
+                        <div class="card-body d-flex align-items-center">
+                            <div class="stat-icon bg-info bg-opacity-10 text-info me-3">
+                                <i class="bi bi-droplet"></i>
+                            </div>
+                            <div>
+                                <div class="stat-value" id="tongNuoc">--</div>
+                                <div class="stat-label">Tổng nước tiêu thụ (m³)</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ========== PHAN 2: BIEU DO HOA DON ========== -->
+            <div class="card mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="bi bi-graph-up me-2"></i>Tổng tiền hóa đơn theo tháng</h5>
+                    <div class="d-flex align-items-center gap-2">
+                        <label for="namChon" class="form-label mb-0">Năm:</label>
+                        <input type="number" class="form-control form-control-sm" id="namChon"
+                               th:value="${namHienTai}" style="width: 100px;" min="2020" max="2099">
+                        <button class="btn btn-sm btn-primary" id="btnLoadChart">
+                            <i class="bi bi-arrow-clockwise me-1"></i>Tải lại
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <canvas id="hoaDonChart" height="100"></canvas>
+                </div>
+            </div>
+
+            <!-- ========== PHAN 3: BANG CHI TIET ========== -->
+            <div class="table-container">
+                <h5 class="fw-bold mb-3"><i class="bi bi-table me-2"></i>Chi tiết từng tháng</h5>
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0" id="chiTietTable">
+                        <thead>
+                            <tr>
+                                <th>Tháng</th>
+                                <th>Số cũ điện</th>
+                                <th>Số mới điện</th>
+                                <th>Tiêu thụ (kWh)</th>
+                                <th>Tiền điện</th>
+                                <th>Số cũ nước</th>
+                                <th>Số mới nước</th>
+                                <th>Tiêu thụ (m³)</th>
+                                <th>Tiền nước</th>
+                                <th>Tiền phòng</th>
+                                <th>Tổng</th>
+                                <th>Trạng thái</th>
+                            </tr>
+                        </thead>
+                        <tbody id="chiTietBody">
+                            <tr>
+                                <td colspan="12" class="text-center text-muted py-4">
+                                    <i class="bi bi-hourglass-split me-1"></i>Đang tải dữ liệu...
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </div>
+
+    </div>
+</div>
+
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script th:inline="javascript">
+(function() {
+    const namHienTai = /*[[${namHienTai}]]*/ 2026;
+    let hoaDonChart = null;
+
+    function formatCurrency(num) {
+        if (num === null || num === undefined) return '0';
+        const n = typeof num === 'number' ? num : parseFloat(num) || 0;
+        return new Intl.NumberFormat('vi-VN').format(n);
+    }
+
+    function formatNumber(num) {
+        if (num === null || num === undefined) return '0';
+        const n = typeof num === 'number' ? num : parseFloat(num) || 0;
+        return new Intl.NumberFormat('vi-VN').format(Math.round(n));
+    }
+
+    function toNumber(val) {
+        if (val === null || val === undefined) return 0;
+        if (typeof val === 'number') return val;
+        if (typeof val === 'string') return parseFloat(val) || 0;
+        return 0;
+    }
+
+    function getBadgeClass(trangThai) {
+        switch (trangThai) {
+            case 'DA_THANH_TOAN': return 'badge badge-dang-hieu-luc';
+            case 'QUA_HAN': return 'badge badge-da-thue';
+            case 'CHUA_THANH_TOAN': return 'badge badge-chua-tt';
+            case 'THANH_TOAN_MOT_PHAN': return 'badge badge-tt-mot-phan';
+            case 'KHONG_CO': return 'badge bg-secondary';
+            default: return 'badge bg-secondary';
+        }
+    }
+
+    function getBadgeText(trangThai) {
+        switch (trangThai) {
+            case 'DA_THANH_TOAN': return 'Đã thanh toán';
+            case 'QUA_HAN': return 'Quá hạn';
+            case 'CHUA_THANH_TOAN': return 'Chưa thanh toán';
+            case 'THANH_TOAN_MOT_PHAN': return 'Thanh toán 1 phần';
+            case 'KHONG_CO': return 'Không có HD';
+            default: return trangThai;
+        }
+    }
+
+    function loadData(nam) {
+        loadSummary(nam);
+        loadChart(nam);
+        loadTable(nam);
+    }
+
+    function loadSummary(nam) {
+        fetch('/tenant/thong-ke/api/tong-quan?nam=' + nam)
+            .then(r => r.json())
+            .then(data => {
+                document.getElementById('tongDaThanhToan').textContent = formatCurrency(data.tongDaThanhToan) + ' đ';
+                document.getElementById('tongConNo').textContent = formatCurrency(data.tongConNo) + ' đ';
+                document.getElementById('tongDien').textContent = formatNumber(data.tongDien);
+                document.getElementById('tongNuoc').textContent = formatNumber(data.tongNuoc);
+            })
+            .catch(function() {
+                document.getElementById('tongDaThanhToan').textContent = 'Lỗi';
+                document.getElementById('tongConNo').textContent = 'Lỗi';
+                document.getElementById('tongDien').textContent = 'Lỗi';
+                document.getElementById('tongNuoc').textContent = 'Lỗi';
+            });
+    }
+
+    function loadChart(nam) {
+        fetch('/tenant/thong-ke/api/chi-tiet?nam=' + nam)
+            .then(r => r.json())
+            .then(data => {
+                if (hoaDonChart) hoaDonChart.destroy();
+
+                const labels = data.labels || [];
+                const revenueData = (data.doanhThuData || []).map(toNumber);
+
+                const ctx = document.getElementById('hoaDonChart').getContext('2d');
+                hoaDonChart = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: 'Tổng tiền (VND)',
+                            data: revenueData,
+                            backgroundColor: 'rgba(54, 162, 235, 0.6)',
+                            borderColor: 'rgba(54, 162, 235, 1)',
+                            borderWidth: 1,
+                            borderRadius: 4
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        plugins: {
+                            legend: { display: true, position: 'top' },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(ctx) {
+                                        return ctx.dataset.label + ': ' + formatCurrency(ctx.raw) + ' VND';
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                ticks: {
+                                    callback: function(value) {
+                                        return formatCurrency(value);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+            })
+            .catch(function(err) {
+                console.error('Loi tai bieu do:', err);
+            });
+    }
+
+    function loadTable(nam) {
+        fetch('/tenant/thong-ke/api/chi-tiet?nam=' + nam)
+            .then(r => r.json())
+            .then(data => {
+                const chiTiet = data.chiTiet || [];
+                const tbody = document.getElementById('chiTietBody');
+
+                if (!chiTiet.length) {
+                    tbody.innerHTML = '<tr><td colspan="12" class="text-center text-muted py-4">Không có dữ liệu</td></tr>';
+                    return;
+                }
+
+                var html = '';
+                for (var i = chiTiet.length - 1; i >= 0; i--) {
+                    var t = chiTiet[i];
+                    html += '<tr>';
+                    html += '<td><strong>' + t.thang + '</strong></td>';
+                    html += '<td>' + formatNumber(t.dienCu) + '</td>';
+                    html += '<td>' + formatNumber(t.dienMoi) + '</td>';
+                    html += '<td><strong>' + formatNumber(t.dienTieuThu) + '</strong></td>';
+                    html += '<td class="text-warning fw-medium">' + formatCurrency(t.tienDien) + '</td>';
+                    html += '<td>' + formatNumber(t.nuocCu) + '</td>';
+                    html += '<td>' + formatNumber(t.nuocMoi) + '</td>';
+                    html += '<td><strong>' + formatNumber(t.nuocTieuThu) + '</strong></td>';
+                    html += '<td class="text-info fw-medium">' + formatCurrency(t.tienNuoc) + '</td>';
+                    html += '<td>' + formatCurrency(t.tienPhong) + '</td>';
+                    html += '<td class="fw-bold">' + formatCurrency(t.tongTien) + '</td>';
+                    html += '<td><span class="' + getBadgeClass(t.trangThai) + '">' + getBadgeText(t.trangThai) + '</span></td>';
+                    html += '</tr>';
+                }
+                tbody.innerHTML = html;
+            })
+            .catch(function(err) {
+                document.getElementById('chiTietBody').innerHTML =
+                    '<tr><td colspan="12" class="text-center text-danger py-4">Lỗi khi tải dữ liệu</td></tr>';
+                console.error('Loi tai bang:', err);
+            });
+    }
+
+    // Load on page load
+    loadData(namHienTai);
+
+    // Reload on button click
+    document.getElementById('btnLoadChart').addEventListener('click', function() {
+        var nam = document.getElementById('namChon').value;
+        loadData(nam);
+    });
+
+    // Reload on Enter key
+    document.getElementById('namChon').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            loadData(this.value);
+        }
+    });
+})();
+</script>
+</body>
+</html>

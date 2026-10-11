@@ -1,0 +1,90 @@
+package com.nhatro.quanlynhatro.entity;
+
+import com.nhatro.quanlynhatro.enums.TrangThaiGiaoDich;
+import com.nhatro.quanlynhatro.enums.TrangThaiHoaDon;
+import jakarta.persistence.*;
+import lombok.*;
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.List;
+
+@Entity
+@Table(name = "hoa_don", uniqueConstraints = {
+
+    // ===================================================================
+    // CLASS: HoaDon - Entity dai dien bang hoa_don trong CSDL
+    // Nghiep vu: Luu thong tin hoa don tien phong hang thang.
+    // Moi hoa don gom: tien phong + tien dien + tien nuoc + phi dich vu.
+    // He thong tu dong tao hoa don dua tren HopDong dang hieu luc va ChiSoDienNuoc.
+    // Trang thai: CHUA_THANH_TOAN -> THANH_TOAN_MOT_PHAN -> DA_THANH_TOAN.
+    // thanhToan(): Khach thanh toan toan bo mot lan (tien mat/VNPay).
+    // taoBankTransferPending(): Khach tao yeu cau chuyen khoan (cho chu tro xac nhan).
+    // ===================================================================
+
+    @UniqueConstraint(columnNames = {"hop_dong_id", "ky_thanh_toan"})
+})
+@Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
+public class HoaDon {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long hoaDonId;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "hop_dong_id", nullable = false)
+    private HopDong hopDong;
+
+    @Column(nullable = false, length = 7)
+    private String kyThanhToan; // VD: 2026-03
+
+    @Column(precision = 12, scale = 0)
+    private BigDecimal tienPhong;
+
+    @Column(precision = 12, scale = 0)
+    private BigDecimal tienDien;
+
+    @Column(precision = 12, scale = 0)
+    private BigDecimal tienNuoc;
+
+    @Column(precision = 12, scale = 0)
+    private BigDecimal phiDichVu;
+
+    @Column(nullable = false, precision = 12, scale = 0)
+    private BigDecimal tongTien;
+
+    private LocalDate hanThanhToan;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private TrangThaiHoaDon trangThai = TrangThaiHoaDon.CHUA_THANH_TOAN;
+
+    private LocalDateTime ngayTao = LocalDateTime.now();
+
+    // Relationships
+    @OneToMany(mappedBy = "hoaDon")
+    private List<GiaoDich> giaoDichs;
+
+    @Transient
+    public BigDecimal getDaThanhToan() {
+        if (giaoDichs == null) return BigDecimal.ZERO;
+        return giaoDichs.stream()
+                .filter(gd -> gd.getTrangThaiGD() == null || gd.getTrangThaiGD() == TrangThaiGiaoDich.DA_XAC_NHAN)
+                .map(GiaoDich::getSoTien)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+    }
+
+    @Transient
+    public BigDecimal getDangChoXacNhan() {
+        if (giaoDichs == null) return BigDecimal.ZERO;
+        return giaoDichs.stream()
+                .filter(gd -> gd.getTrangThaiGD() == TrangThaiGiaoDich.CHO_XAC_NHAN)
+                .map(GiaoDich::getSoTien)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+    }
+
+    @Transient
+    public BigDecimal getConNo() {
+        return tongTien.subtract(getDaThanhToan());
+    }
+}

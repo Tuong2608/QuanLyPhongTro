@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head><title>Chi tiết Hóa đơn</title></head>
+<body>
+<div th:replace="~{layout/main :: layout(title='Chi tiết Hóa đơn', content=~{::mainContent})}">
+    <div th:fragment="mainContent">
+
+        <!-- Flash messages -->
+        <div th:if="${successMessage}" class="alert alert-success alert-dismissible fade show">
+            <i class="bi bi-check-circle me-2"></i><span th:text="${successMessage}"></span>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+        <div th:if="${errorMessage}" class="alert alert-danger alert-dismissible fade show">
+            <i class="bi bi-exclamation-circle me-2"></i><span th:text="${errorMessage}"></span>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+
+        <!-- Page Header -->
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2><i class="bi bi-receipt me-2"></i>Hóa đơn #<span th:text="${hoaDon.hoaDonId}"></span></h2>
+            <div>
+                <span th:if="${hoaDon.trangThai.name() == 'CHUA_THANH_TOAN'}" class="badge bg-danger fs-6">Chưa thanh toán</span>
+                <span th:if="${hoaDon.trangThai.name() == 'DA_THANH_TOAN'}" class="badge bg-success fs-6">Đã thanh toán</span>
+                <span th:if="${hoaDon.trangThai.name() == 'THANH_TOAN_MOT_PHAN'}" class="badge bg-warning text-dark fs-6">Thanh toán một phần</span>
+            </div>
+        </div>
+
+        <div class="row">
+            <!-- ==================== CỘT TRÁI: THÔNG TIN + CHI PHÍ ==================== -->
+            <div class="col-lg-8 mb-4">
+
+                <!-- Thông tin hóa đơn -->
+                <div class="card mb-4">
+                    <div class="card-header bg-light">
+                        <h6 class="mb-0"><i class="bi bi-info-circle me-2"></i>Thông tin hóa đơn</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <table class="table table-sm table-borderless mb-0">
+                                    <tr>
+                                        <th class="text-muted" style="width:40%">Phòng:</th>
+                                        <td class="fw-semibold">
+                                            <span th:text="${hoaDon.hopDong.phongTro.soPhong}"></span>
+                                            <span class="text-muted fw-normal" th:text="' - ' + ${hoaDon.hopDong.phongTro.khuTro.tenKhu}"></span>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <th class="text-muted">Khách thuê:</th>
+                                        <td th:text="${hoaDon.hopDong.khachThue.hoTen}"></td>
+                                    </tr>
+                                </table>
+                            </div>
+                            <div class="col-md-6">
+                                <table class="table table-sm table-borderless mb-0">
+                                    <tr>
+                                        <th class="text-muted" style="width:40%">Kỳ thanh toán:</th>
+                                        <td class="fw-semibold" th:text="${hoaDon.kyThanhToan}"></td>
+                                    </tr>
+                                    <tr>
+                                        <th class="text-muted">Hạn thanh toán:</th>
+                                        <td>
+                                            <span th:text="${#temporals.format(hoaDon.hanThanhToan, 'dd/MM/yyyy')}"></span>
+                                            <span th:if="${hoaDon.hanThanhToan.isBefore(T(java.time.LocalDate).now()) && hoaDon.conNo > 0}"
+                                                  class="badge bg-danger ms-1">Quá hạn!</span>
+                                        </td>
+                                    </tr>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Chi tiết chi phí -->
+                <div class="card mb-4">
+                    <div class="card-header bg-light">
+                        <h6 class="mb-0"><i class="bi bi-list-ul me-2"></i>Bảng kê chi phí</h6>
+                    </div>
+                    <div class="card-body p-0">
+                        <table class="table mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Khoản mục</th>
+                                    <th>Chi tiết</th>
+                                    <th class="text-end">Thành tiền</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><i class="bi bi-house text-primary me-2"></i>Tiền phòng</td>
+                                    <td class="text-muted small">Tiền thuê phòng hàng tháng</td>
+                                    <td class="text-end fw-semibold" th:text="${#numbers.formatDecimal(hoaDon.tienPhong, 0, 'COMMA', 0, 'POINT')} + ' VND'"></td>
+                                </tr>
+                                <tr>
+                                    <td><i class="bi bi-lightning text-warning me-2"></i>Tiền điện</td>
+                                    <td class="text-muted small">
+                                        <span th:if="${chiSo != null}">
+                                            Số cũ: <strong th:text="${chiSo.dienCu}"></strong> -
+                                            Số mới: <strong th:text="${chiSo.dienMoi}"></strong>
+                                            <br>Tương đương sử dụng:
+                                            <strong class="text-dark" th:text="${chiSo.dienMoi - chiSo.dienCu}"></strong> kWh
+                                        </span>
+                                        <span th:if="${chiSo == null}">Theo chỉ số công tơ</span>
+                                    </td>
+                                    <td class="text-end align-middle" th:text="${#numbers.formatDecimal(hoaDon.tienDien, 0, 'COMMA', 0, 'POINT')} + ' VND'"></td>
+                                </tr>
+                                <tr>
+                                    <td><i class="bi bi-droplet text-info me-2"></i>Tiền nước</td>
+                                    <td class="text-muted small">
+                                        <span th:if="${chiSo != null}">
+                                            Số cũ: <strong th:text="${chiSo.nuocCu}"></strong> -
+                                            Số mới: <strong th:text="${chiSo.nuocMoi}"></strong>
+                                            <br>Tương đương sử dụng:
+                                            <strong class="text-dark" th:text="${chiSo.nuocMoi - chiSo.nuocCu}"></strong> m³
+                                        </span>
+                                        <span th:if="${chiSo == null}">Theo chỉ số đồng hồ nước</span>
+                                    </td>
+                                    <td class="text-end align-middle" th:text="${#numbers.formatDecimal(hoaDon.tienNuoc, 0, 'COMMA', 0, 'POINT')} + ' VND'"></td>
+                                </tr>
+                                <tr>
+                                    <td><i class="bi bi-gear text-secondary me-2"></i>Phí dịch vụ khác</td>
+                                    <td class="text-muted small">
+                                        <span th:if="${danhSachDichVu != null}">
+                                            <span th:each="dv, stat : ${danhSachDichVu}"
+                                                  th:if="${dv.tenDV != 'Điện' && dv.tenDV != 'Nước'}">
+                                                <span th:text="${dv.tenDV}"></span>
+                                                (<span th:text="${#numbers.formatDecimal(dv.donGia, 0, 'COMMA', 0, 'POINT')}"></span>)
+                                                <span th:if="${!stat.last}">, </span>
+                                            </span>
+                                        </span>
+                                    </td>
+                                    <td class="text-end" th:text="${#numbers.formatDecimal(hoaDon.phiDichVu, 0, 'COMMA', 0, 'POINT')} + ' VND'"></td>
+                                </tr>
+                            </tbody>
+                            <tfoot>
+                                <tr class="table-dark">
+                                    <td colspan="2" class="fw-bold">TỔNG CỘNG</td>
+                                    <td class="text-end fw-bold fs-5" th:text="${#numbers.formatDecimal(hoaDon.tongTien, 0, 'COMMA', 0, 'POINT')} + ' VND'"></td>
+                                </tr>
+                                <tr th:if="${hoaDon.daThanhToan > 0}" class="table-success">
+                                    <td colspan="2"><i class="bi bi-check-circle text-success me-1"></i>Đã thanh toán</td>
+                                    <td class="text-end fw-semibold text-success" th:text="${#numbers.formatDecimal(hoaDon.daThanhToan, 0, 'COMMA', 0, 'POINT')} + ' VND'"></td>
+                                </tr>
+                                <tr th:if="${hoaDon.dangChoXacNhan > 0}" class="table-warning">
+                                    <td colspan="2"><i class="bi bi-hourglass-split text-warning me-1"></i>Đang chờ xác nhận</td>
+                                    <td class="text-end fw-semibold text-warning" th:text="${#numbers.formatDecimal(hoaDon.dangChoXacNhan, 0, 'COMMA', 0, 'POINT')} + ' VND'"></td>
+                                </tr>
+                                <tr th:if="${hoaDon.conNo > 0}" class="table-danger">
+                                    <td colspan="2" class="fw-bold text-danger"><i class="bi bi-exclamation-triangle me-1"></i>CÒN NỢ</td>
+                                    <td class="text-end fw-bold text-danger fs-5" th:text="${#numbers.formatDecimal(hoaDon.conNo, 0, 'COMMA', 0, 'POINT')} + ' VND'"></td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Lịch sử giao dịch -->
+                <div class="card mb-4" th:if="${giaoDichs != null && !giaoDichs.isEmpty()}">
+                    <div class="card-header bg-light">
+                        <h6 class="mb-0"><i class="bi bi-arrow-left-right me-2"></i>Lịch sử giao dịch</h6>
+                    </div>
+                    <div class="card-body p-0">
+                        <table class="table table-sm table-hover mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>#</th>
+                                    <th>Ngày giao dịch</th>
+                                    <th class="text-end">Số tiền</th>
+                                    <th>Phương thức</th>
+                                    <th>Trạng thái</th>
+                                    <th>Ghi chú</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr th:each="gd, stat : ${giaoDichs}">
+                                    <td th:text="${stat.index + 1}"></td>
+                                    <td th:text="${#temporals.format(gd.ngayGiaoDich, 'dd/MM/yyyy HH:mm')}"></td>
+                                    <td class="text-end fw-semibold text-success"
+                                        th:text="${#numbers.formatDecimal(gd.soTien, 0, 'COMMA', 0, 'POINT')} + ' VND'"></td>
+                                    <td>
+                                        <span th:if="${gd.phuongThuc.name() == 'TIEN_MAT'}" class="badge bg-secondary">Tiền mặt</span>
+                                        <span th:if="${gd.phuongThuc.name() == 'CHUYEN_KHOAN'}" class="badge bg-info">Chuyển khoản</span>
+                                        <span th:if="${gd.phuongThuc.name() == 'ONLINE'}" class="badge bg-primary">Ví điện tử</span>
+                                    </td>
+                                    <td>
+                                        <span th:if="${gd.trangThaiGD == null || gd.trangThaiGD.name() == 'DA_XAC_NHAN'}" class="badge bg-success">Đã xác nhận</span>
+                                        <span th:if="${gd.trangThaiGD != null && gd.trangThaiGD.name() == 'CHO_XAC_NHAN'}" class="badge bg-warning text-dark">Chờ xác nhận</span>
+                                        <span th:if="${gd.trangThaiGD != null && gd.trangThaiGD.name() == 'DA_HUY'}" class="badge bg-danger">Đã hủy</span>
+                                    </td>
+                                    <td class="text-muted small" th:text="${gd.ghiChu ?: '-'}"></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ==================== CỘT PHẢI: THANH TOÁN ==================== -->
+            <div class="col-lg-4 mb-4">
+
+                <!-- Thông báo đang chờ xác nhận -->
+                <div class="card mb-4 border-warning" th:if="${hoaDon.dangChoXacNhan > 0}">
+                    <div class="card-body text-center py-4">
+                        <div class="rounded-circle bg-warning bg-opacity-10 d-inline-flex p-4 mb-3">
+                            <i class="bi bi-hourglass-split text-warning" style="font-size:3rem;"></i>
+                        </div>
+                        <h5 class="text-warning">Đang chờ xác nhận</h5>
+                        <p class="text-muted mb-1">Bạn đã chuyển khoản</p>
+                        <h4 class="text-warning" th:text="${#numbers.formatDecimal(hoaDon.dangChoXacNhan, 0, 'COMMA', 0, 'POINT')} + ' VND'"></h4>
+                        <p class="text-muted small mb-0">Chủ trọ sẽ xác nhận khi đã nhận được tiền.</p>
+                    </div>
+                </div>
+
+                <!-- Form thanh toán (nếu còn nợ và không có pending) -->
+                <div class="card mb-4" th:if="${hoaDon.conNo > 0 && hoaDon.dangChoXacNhan <= 0}">
+                    <div class="card-header bg-primary text-white">
+                        <h6 class="mb-0"><i class="bi bi-credit-card me-2"></i>Thanh toán</h6>
+                    </div>
+                    <div class="card-body">
+                        <!-- Số tiền cần thanh toán -->
+                        <div class="text-center mb-4">
+                            <p class="text-muted mb-1">Số tiền cần thanh toán</p>
+                            <h2 class="text-danger mb-0" th:text="${#numbers.formatDecimal(hoaDon.conNo, 0, 'COMMA', 0, 'POINT')} + ' VND'"></h2>
+                        </div>
+
+                        <!-- Tab chuyển khoản / ví điện tử -->
+                        <ul class="nav nav-pills nav-fill mb-3" role="tablist">
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link active" type="button" role="tab"
+                                        data-bs-toggle="pill" data-bs-target="#tabChuyenKhoan"
+                                        aria-controls="tabChuyenKhoan" aria-selected="true">
+                                    <i class="bi bi-bank me-1"></i>Chuyển khoản
+                                </button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" type="button" role="tab"
+                                        data-bs-toggle="pill" data-bs-target="#tabViDienTu"
+                                        aria-controls="tabViDienTu" aria-selected="false">
+                                    <i class="bi bi-phone me-1"></i>Ví điện tử
+                                </button>
+                            </li>
+                        </ul>
+
+                        <div class="tab-content">
+                            <!-- === Tab Chuyển khoản === -->
+                            <div class="tab-pane fade show active" id="tabChuyenKhoan">
+                                <div class="border rounded p-3 mb-3 bg-light">
+                                    <h6 class="fw-bold mb-3"><i class="bi bi-bank2 me-2"></i>Thông tin chuyển khoản</h6>
+                                    <table class="table table-sm table-borderless mb-0">
+                                        <tr>
+                                            <td class="text-muted">Ngân hàng:</td>
+                                            <td class="fw-bold">Vietcombank (VCB)</td>
+                                        </tr>
+                                        <tr>
+                                            <td class="text-muted">Số TK:</td>
+                                            <td class="fw-bold">
+                                                <span id="stkText">1234567890123</span>
+                                                <button class="btn btn-sm btn-outline-secondary ms-2 btn-copy" type="button"
+                                                        data-copy="1234567890123">
+                                                    <i class="bi bi-clipboard"></i>
+                                                </button>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td class="text-muted">Chủ TK:</td>
+                                            <td class="fw-bold">NGUYEN VAN CHU TRO</td>
+                                        </tr>
+                                        <tr>
+                                            <td class="text-muted">Số tiền:</td>
+                                            <td class="fw-bold text-danger" th:text="${#numbers.formatDecimal(hoaDon.conNo, 0, 'COMMA', 0, 'POINT')} + ' VND'"></td>
+                                        </tr>
+                                        <tr>
+                                            <td class="text-muted">Nội dung CK:</td>
+                                            <td class="fw-bold">
+                                                <span id="noiDungCK" th:text="'HD' + ${hoaDon.hoaDonId} + ' P' + ${hoaDon.hopDong.phongTro.soPhong}"></span>
+                                                <button class="btn btn-sm btn-outline-secondary ms-2 btn-copy" type="button"
+                                                        th:data-copy="'HD' + ${hoaDon.hoaDonId} + ' P' + ${hoaDon.hopDong.phongTro.soPhong}">
+                                                    <i class="bi bi-clipboard"></i>
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    </table>
+                                </div>
+
+                                <!-- QR Code (giả lập) -->
+                                <div class="text-center mb-3">
+                                    <div class="border rounded p-3 d-inline-block bg-white" style="width:180px;height:180px;">
+                                        <div class="d-flex align-items-center justify-content-center h-100">
+                                            <div>
+                                                <i class="bi bi-qr-code" style="font-size:4rem;color:#333;"></i>
+                                                <br><small class="text-muted">QR Thanh toán</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <p class="text-muted small mt-2 mb-0">Quét mã QR bằng app ngân hàng</p>
+                                </div>
+
+                                <form th:action="@{/tenant/hoa-don/chuyen-khoan/{id}(id=${hoaDon.hoaDonId})}" method="post">
+                                    <button type="submit" class="btn btn-info btn-lg w-100"
+                                            onclick="return confirm('Xác nhận: Bạn đã chuyển khoản theo thông tin trên?')">
+                                        <i class="bi bi-send-check me-2"></i>Tôi đã chuyển khoản
+                                    </button>
+                                </form>
+                                <p class="text-muted small text-center mt-2 mb-0">
+                                    Sau khi bấm, chủ trọ sẽ kiểm tra và xác nhận gạch nợ cho bạn.
+                                </p>
+                            </div>
+
+                            <!-- === Tab Ví điện tử === -->
+                            <div class="tab-pane fade" id="tabViDienTu">
+                                <div class="text-center mb-3">
+                                    <p class="text-muted">Thanh toán nhanh qua ví điện tử</p>
+                                </div>
+                                <form th:action="@{/tenant/hoa-don/thanh-toan-online/{id}(id=${hoaDon.hoaDonId})}" method="post">
+                                    <div class="d-grid gap-2 mb-3">
+                                        <button type="submit" class="btn btn-outline-primary btn-lg">
+                                            <i class="bi bi-wallet2 me-2"></i>VNPay / MoMo / ZaloPay
+                                        </button>
+                                    </div>
+                                </form>
+                                <div class="alert alert-info small mb-0">
+                                    <i class="bi bi-info-circle me-1"></i>
+                                    Thanh toán qua ví điện tử sẽ được <strong>tự động gạch nợ</strong> ngay khi giao dịch thành công.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Đã thanh toán đủ -->
+                <div class="card mb-4" th:if="${hoaDon.conNo <= 0 && hoaDon.dangChoXacNhan <= 0}">
+                    <div class="card-body text-center py-4">
+                        <div class="rounded-circle bg-success bg-opacity-10 d-inline-flex p-4 mb-3">
+                            <i class="bi bi-check-circle text-success" style="font-size:3rem;"></i>
+                        </div>
+                        <h5 class="text-success">Đã thanh toán đầy đủ</h5>
+                        <p class="text-muted mb-0">Cảm ơn bạn đã thanh toán đúng hạn!</p>
+                    </div>
+                </div>
+
+                <!-- Bảng giá dịch vụ -->
+                <div class="card" th:if="${danhSachDichVu != null && !danhSachDichVu.isEmpty()}">
+                    <div class="card-header bg-light">
+                        <h6 class="mb-0"><i class="bi bi-tags me-2"></i>Bảng giá dịch vụ tham khảo</h6>
+                    </div>
+                    <div class="card-body p-0">
+                        <table class="table table-sm mb-0">
+                            <tbody>
+                                <tr th:each="dv : ${danhSachDichVu}">
+                                    <td>
+                                        <i th:if="${dv.tenDV == 'Điện'}" class="bi bi-lightning text-warning me-1"></i>
+                                        <i th:if="${dv.tenDV == 'Nước'}" class="bi bi-droplet text-info me-1"></i>
+                                        <i th:if="${dv.tenDV != 'Điện' && dv.tenDV != 'Nước'}" class="bi bi-gear text-secondary me-1"></i>
+                                        <span th:text="${dv.tenDV}"></span>
+                                    </td>
+                                    <td class="text-end" th:text="${#numbers.formatDecimal(dv.donGia, 0, 'COMMA', 0, 'POINT')} + ' / ' + ${dv.donViTinh ?: 'tháng'}"></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Back Button -->
+        <a th:href="@{/tenant/hoa-don}" class="btn btn-secondary">
+            <i class="bi bi-arrow-left me-1"></i>Quay lại danh sách
+        </a>
+
+        <!-- Script copy clipboard -->
+        <script>
+            document.querySelectorAll('.btn-copy').forEach(function(btn) {
+                btn.addEventListener('click', function() {
+                    var text = this.getAttribute('data-copy');
+                    navigator.clipboard.writeText(text);
+                    var icon = this.querySelector('i');
+                    icon.className = 'bi bi-check text-success';
+                    setTimeout(function() { icon.className = 'bi bi-clipboard'; }, 1500);
+                });
+            });
+        </script>
+
+    </div>
+</div>
+</body>
+</html>
